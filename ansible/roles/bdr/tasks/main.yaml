@@ -1,0 +1,102 @@
+- name: Install curl
+  yum:
+    name: curl
+    state: present
+
+- name: Install postgres repo
+  yum:
+    name: https://download.postgresql.org/pub/repos/yum/9.4/redhat/rhel-7-x86_64/pgdg-centos94-9.4-3.noarch.rpm
+    state: present
+
+- name: Install bdr repo
+  shell: "curl https://dl.2ndquadrant.com/default/release/get/bdr9.4/rpm | sudo bash"
+
+- name: Install bdr package
+  yum:
+    update_cache: yes
+    name: postgresql-bdr94-bdr
+    state: present
+
+- name: Check if postgresql directory exists
+  stat:
+    path: /var/lib/pgsql/9.4-bdr/data
+  register: data_exists
+
+- name: Init postgres database
+  command: /usr/pgsql-9.4/bin/postgresql94-setup
+  when: not data_exists.stat.exists
+
+- name: Copy pg_hba
+  template:
+    src: pg_hba.conf.j2
+    dest: /var/lib/pgsql/9.4-bdr/data/pg_hba.conf
+    owner: postgres
+
+- name: Copy postgresql.conf
+  template:
+    src: postgresql.conf.j2
+    dest: /var/lib/pgsql/9.4-bdr/data/postgresql.conf
+    owner: postgres
+
+- name: Start postgresql service
+  service:
+    name: postgresql-9.4
+    state: started
+    enabled: yes
+
+#- name: Install requirements
+#  yum:
+#    name: "{{ item }}"
+#    state: present
+#  loop:
+#    - yum-utils
+#    - git
+#    - "@Development Tools"
+#    - "openjade"
+#    - "openjade"
+#
+#- name: Install build requirements
+#  command: yum-builddep -y postgresql
+#
+#- name: Create src directory
+#  file:
+#    state: directory
+#    path: /opt/postgres-bdr-src
+#
+#- name: Get postgres
+#  git:
+#    repo: "https://github.com/2ndQuadrant/bdr.git"
+#    version: "bdr-pg/REL9_4_STABLE"
+#    dest: /opt/postgres-bdr-src/postgres-src
+#
+#- name: Get bdr
+#  git:
+#    repo: "https://github.com/2ndQuadrant/bdr.git"
+#    version: bdr-plugin/REL1_0_STABLE
+#    dest: /opt/postgres-bdr-src/bdr-src
+#
+#- name: Configure postgres
+#  shell: './configure --enable-depend --enable-debug --enable-cassert CFLAGS="-fno-omit-frame-pointer" --prefix /opt/postgres'
+#  args:
+#    chdir: /opt/postgres-bdr-src/postgres-src
+#
+#- name: build postgres
+#  make:
+#    chdir: /opt/postgres-bdr-src/postgres-src
+#    target: install
+#
+#- name: configure bdr
+#  shell: './autogen.sh'
+#  args:
+#    chdir: /opt/postgres-bdr-src/bdr-src
+#
+#- name: configure bdr2
+#  shell: 'PATH=/opt/postgres/bin:$PATH ./configure'
+#  args:
+#    chdir: /opt/postgres-bdr-src/bdr-src
+#
+#- name: build bdr
+#  make:
+#    chdir: /opt/postgres-bdr-src/bdr-src
+#    target: install
+#

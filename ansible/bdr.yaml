@@ -1,0 +1,3 @@
+- hosts: bdr-cluster 
+  roles:
+  - bdr
